@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     aws = {
-      version = ">= 4.40.0, < 4.41.0"
+     
       source  = "hashicorp/aws"
     }
   }
@@ -9,7 +9,7 @@ terraform {
   backend "s3" {
     region         = "eu-central-1"
     bucket         = "capci-isabelle-bucket2023"
-  
+    key = "capci/migration.tfstates"
     dynamodb_table = "tf-state-capci-isabelle"
     encrypt        = "true"
   }
