@@ -2,7 +2,6 @@ module "vpc" {
   source = "terraform-aws-modules/vpc/aws"
   name = local.vpc_name
   cidr = local.vpc_cidr
-
   azs             = ["eu-central-1a", "eu-central-1ab", "eu-central-1ac"]
   private_subnets = [local.private_cidr]
   public_subnets  = [local.public_cidr]
@@ -60,3 +59,27 @@ resource "aws_security_group" "database_server" {
 
 #EC2 instances
 
+resource "aws_instance" "webserver" {
+    ami = data.aws_ami.ubuntu_image.id
+    instance_type = local.instance_type_ws
+    subnet_id = module.vpc.public_subnets[0]
+    vpc_security_group_ids =  [aws_security_group.webserver.id]
+    user_data = file("${path.module}/scripts/webserver.sh")
+    monitoring = true 
+    ebs_optimized = true  
+
+     root_block_device {
+    encrypted = true
+  }
+
+}
+
+ resource "aws_instance" "database" {
+    ami = data.aws_ami.ubuntu_image.id
+    instance_type = local.instance_type_db
+    subnet_id = module.vpc.private_subnets[0]
+    vpc_security_group_ids = [ aws_security_group.database_server ]
+    user_data = file("${path.module}/scripts/db_userdata.sh")
+    monitoring = true 
+    ebs_optimized = true 
+} 
