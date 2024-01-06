@@ -1,23 +1,20 @@
 
 #!/bin/bash
 
-# Reference: https://linuxhint.com/install-pgadmin4-ubuntu/
-
-curl  -fsSL https://www.pgadmin.org/static/packages_pgadmin_org.pub | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/pgadmin.gpg
-echo "deb https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/$(lsb_release -cs) pgadmin4 main" > /etc/apt/sources.list.d/pgadmin4.list
-
 apt update -y
-apt install -y pgadmin4
+apt install postgresql -y
 
-if [[ ${PGADMIN_SETUP_EMAIL:-"unset"} == "unset" ]]; then
-export PGADMIN_SETUP_EMAIL="admin@example.com"
-fi
+# bind 5432 to the public IP so we can access it from outside the machine
+echo "listen_addresses = '*'" >> /etc/postgresql/12/main/postgresql.conf
+# update hba conf
+echo "host    all             all              0.0.0.0/0                       md5" >> /etc/postgresql/12/main/pg_hba.conf
+echo "host    all             all              ::/0                            md5" >> /etc/postgresql/12/main/pg_hba.conf
 
-if [[ ${PGADMIN_SETUP_PASSWORD:-"unset"} == "unset" ]]; then
-export PGADMIN_SETUP_PASSWORD="password"
-fi
+# restart the server
+systemctl restart postgresql
 
-echo 'export PGADMIN_SETUP_EMAIL="${PGADMIN_SETUP_EMAIL}"' >> /home/ubuntu/.bashrc
-echo 'export PGADMIN_SETUP_PASSWORD="${PGADMIN_SETUP_PASSWORD}"' >> /home/ubuntu/.bashrc
-
-/usr/pgadmin4/bin/setup-web.sh --yes
+su - postgres -c 'psql -U postgres -c "CREATE ROLE ubuntu SUPERUSER;"'
+su - postgres -c 'psql -U postgres -c "ALTER ROLE  ubuntu  WITH LOGIN;"'
+su - postgres -c 'psql -U postgres -c "ALTER USER  ubuntu  CREATEDB;"'
+su - postgres -c $'psql -U postgres -c "ALTER USER  ubuntu  WITH PASSWORD \'ubuntu\';"'
+su - postgres -c 'psql -U postgres -c "CREATE DATABASE ubuntu;"'
